@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微积分计算工具 — 一重定积分</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <h1 class="title">📐 微积分计算工具</h1>
+                <button id="settingsBtn" class="settings-btn" title="云识别设置">☁️ 云识别设置</button>
+            </div>
+            <p class="subtitle">手写输入被积函数 · 云智能识别 · 一键计算定积分 ∫<sub>a</sub><sup>b</sup> f(x) dx</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-container">
+            <!-- Left: Input Section -->
+            <section class="input-section">
+                <!-- Canvas Card -->
+                <div class="card canvas-card">
+                    <div class="card-header">
+                        <h3>✍️ 手写被积函数 <code>f(x)</code></h3>
+                        <span class="badge" id="modeBadge">画笔模式</span>
+                    </div>
+                    <div class="canvas-wrapper">
+                        <canvas id="drawCanvas"></canvas>
+                    </div>
+                    <div class="toolbar">
+                        <button id="penBtn" class="tool-btn active" title="画笔模式">✏️ 画笔</button>
+                        <button id="eraserBtn" class="tool-btn" title="橡皮模式">🧹 橡皮</button>
+                        <span class="toolbar-sep"></span>
+                        <button id="undoBtn" class="tool-btn" title="撤销上一笔">↩ 撤销</button>
+                        <button id="clearBtn" class="tool-btn" title="清除全部">🗑 清屏</button>
+                        <span class="toolbar-sep"></span>
+                        <button id="recognizeBtn" class="tool-btn primary" title="智能识别手写内容">🔍 智能识别</button>
+                    </div>
+                </div>
+
+                <!-- Expression Card -->
+                <div class="card expr-card">
+                    <div class="card-header">
+                        <h3>📝 被积函数表达式</h3>
+                        <div class="header-status">
+                            <span id="recognitionSource" class="recognition-source local">🧠 本地识别</span>
+                            <span id="confidenceBadge" class="confidence-badge hidden">--</span>
+                            <span id="engineStatus" class="engine-status loading">⚙️ 识别引擎加载中…</span>
+                        </div>
+                    </div>
+                    <div class="expr-display">
+                        <span class="expr-prefix">f(x) =</span>
+                        <input type="text" id="expressionInput"
+                            placeholder="在此编辑被积函数，如 sin(x)、x^2、e^x ..."
+                            spellcheck="false" autocomplete="off">
+                    </div>
+                    <p class="hint">✍️ 支持<b>上标/下标</b>：把 2 写得小一些、位置抬高即自动识别为 <code>x^2</code> · 建议逐个字符书写、字间留一点空隙，停笔约 1 秒自动识别 · 识别后可直接编辑 · 支持 <code>sin cos tan log ln sqrt exp abs</code> · 乘号用 <code>*</code></p>
+                </div>
+
+                <!-- Limits Card -->
+                <div class="card limits-card">
+                    <div class="card-header">
+                        <h3>📏 积分参数（可手写）</h3>
+                    </div>
+                    <div class="limits-row">
+                        <!-- Lower Limit -->
+                        <div class="limit-group limit-handwrite">
+                            <label>积分下限 <strong>a</strong></label>
+                            <div class="mini-canvas-wrap">
+                                <canvas id="lowerCanvas" class="mini-canvas"></canvas>
+                                <button class="mini-clear" data-target="lowerCanvas" title="清除">🗑</button>
+                            </div>
+                            <div class="mini-input-row">
+                                <span class="mini-label">识别:</span>
+                                <input type="text" id="lowerLimit" value="0" placeholder="如 0" class="limit-input">
+                            </div>
+                        </div>
+                        <!-- Upper Limit -->
+                        <div class="limit-group limit-handwrite">
+                            <label>积分上限 <strong>b</strong></label>
+                            <div class="mini-canvas-wrap">
+                                <canvas id="upperCanvas" class="mini-canvas"></canvas>
+                                <button class="mini-clear" data-target="upperCanvas" title="清除">🗑</button>
+                            </div>
+                            <div class="mini-input-row">
+                                <span class="mini-label">识别:</span>
+                                <input type="text" id="upperLimit" value="1" placeholder="如 1" class="limit-input">
+                            </div>
+                        </div>
+                        <!-- Variable -->
+                        <div class="limit-group limit-var">
+                            <label for="variable">积分变量</label>
+                            <input type="text" id="variable" value="x" maxlength="1" placeholder="x" class="var-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculate Button -->
+                <button id="calculateBtn" class="calculate-btn">
+                    <span class="btn-icon">📊</span>
+                    <span class="btn-text">计算定积分</span>
+                    <span class="btn-formula">∫<sub>a</sub><sup>b</sup> f(x) dx</span>
+                </button>
+            </section>
+
+            <!-- Right: Result Section -->
+            <section class="result-section">
+                <!-- Result Card -->
+                <div class="card result-card">
+                    <div class="card-header">
+                        <h3>📊 计算结果</h3>
+                    </div>
+                    <div id="resultDisplay" class="result-body">
+                        <div class="placeholder-state">
+                            <span class="placeholder-icon">📐</span>
+                            <p>在上方绘制或输入被积函数</p>
+                            <p>设置积分上下限，然后点击计算</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization Card -->
+                <div class="card viz-card">
+                    <div class="card-header">
+                        <h3>📈 函数图像与积分区域</h3>
+                    </div>
+                    <div class="viz-body">
+                        <canvas id="plotCanvas"></canvas>
+                        <div id="plotPlaceholder" class="placeholder-state">
+                            <span class="placeholder-icon">📈</span>
+                            <p>计算后显示函数曲线与积分面积</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Card -->
+                <div class="card history-card">
+                    <div class="card-header">
+                        <h3>📋 计算历史</h3>
+                        <button id="clearHistoryBtn" class="text-btn">清空记录</button>
+                    </div>
+                    <div id="historyList" class="history-body">
+                        <p class="placeholder-text">暂无历史记录</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>微积分计算工具 · 支持自适应数值积分 · 手写智能识别</p>
+        </footer>
+    </div>
+
+    <!-- Cloud Settings Modal -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h3>☁️ 云识别设置（MyScript）</h3>
+            <p class="modal-desc">
+                云识别对手写数学表达式识别更准确。注册免费的 MyScript 开发者账号即可获得 Key，无需付费（每月有免费额度）。
+            </p>
+            <label class="modal-label" for="cloudAppKey">Application Key（应用密钥）</label>
+            <input type="text" id="cloudAppKey" class="modal-input"
+                placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" spellcheck="false">
+            <label class="modal-label" for="cloudHmacKey">HMAC Key（HMAC 密钥）</label>
+            <input type="text" id="cloudHmacKey" class="modal-input"
+                placeholder="HMAC 密钥" spellcheck="false">
+            <div id="cloudStatus" class="modal-status warn">未配置云识别，当前使用本地识别</div>
+            <div class="modal-actions">
+                <button id="cloudSaveBtn" class="tool-btn primary">保存</button>
+                <button id="cloudTestBtn" class="tool-btn">测试云连接</button>
+                <button id="cloudLocalTestBtn" class="tool-btn">测试本地识别</button>
+                <button id="cloudClearBtn" class="tool-btn">清除设置</button>
+                <button id="cloudCloseBtn" class="tool-btn">关闭</button>
+            </div>
+            <div class="modal-links">
+                <p>📋 获取 Key 步骤：</p>
+                <a href="https://developer.myscript.com/getting-started/web/" target="_blank" rel="noopener">① 注册免费开发者账号（developer.myscript.com）</a>
+                <a href="https://cloud.myscript.com/#/applications" target="_blank" rel="noopener">② 创建应用，生成 Application Key 与 HMAC Key</a>
+                <p class="modal-note">💡 保存后即可使用。若提示无法连接，请尝试用本地服务器打开页面（如 VS Code Live Server）。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@12.2.1/lib/browser/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <!-- Application Scripts -->
+    <script src="js/canvas.js"></script>
+    <script src="js/recognizer.js"></script>
+    <script src="js/integrator.js"></script>
+    <script src="js/cloudRecognizer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
